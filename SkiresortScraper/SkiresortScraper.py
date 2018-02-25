@@ -108,7 +108,7 @@ if __name__ == '__main__':
     # Sk resort website url
     url = 'http://www.skiresort.info/ski-resorts/'
     
-    totalPages = get_number_of_pages(url)
+    #totalPages = get_number_of_pages(url)
     totalPages = 1 # restict to first page while testing.
 
     for page in range(totalPages):
