@@ -109,6 +109,7 @@ if __name__ == '__main__':
     url = 'http://www.skiresort.info/ski-resorts/'
     
     totalPages = get_number_of_pages(url)
+    totalPages = 1 # restict to first page while testing.
 
     for page in range(totalPages):
 
@@ -116,8 +117,7 @@ if __name__ == '__main__':
         if page > 0:
             url = url+"page/"+str(page+1)
         # else: url is unchanged.
-
-
+        
         # Get the current page contents
         content = get_html_content(url)
 
