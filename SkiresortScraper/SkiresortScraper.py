@@ -80,7 +80,7 @@ def get_basic_resort_statistics(resortUrl):
     # Extract the Lift details.
     liftStatistics = {}
     print("Lift numbers:")
-    for lift in resortHtml.findAll("div", {"class": "lift-count"}): #lifts:
+    for lift in resortHtml.findAll("div", {"class": "lift-count"}):
         key = lift['title']
         value = int(lift.get_text())
         liftStatistics[key] = value
@@ -88,12 +88,47 @@ def get_basic_resort_statistics(resortUrl):
         print(key,": ",value)
                 
     # Extract the ticket prices
-    adultPrices = resortHtml.findAll("td", {"id": "selTicketA"})[0].contents[0]
-    youthPrices = resortHtml.findAll("td", {"id": "selTicketY"})[0].contents[0]
-    childPrices = resortHtml.findAll("td", {"id": "selTicketC"})[0].contents[0]
+    if not resortHtml.findAll("td", {"id": "selTicketA"}):
+        adultPrices = 0
+    else:
+        adultPrices = resortHtml.findAll("td", {"id": "selTicketA"})[0].contents[0]
+
+    if not resortHtml.findAll("td", {"id": "selTicketY"}):
+        youthPrices = 0
+    else:
+        youthPrices = resortHtml.findAll("td", {"id": "selTicketY"})[0].contents[0]
+
+    if not resortHtml.findAll("td", {"id": "selTicketC"}):
+        childPrices = 0
+    else:
+        childPrices = resortHtml.findAll("td", {"id": "selTicketC"})[0].contents[0]
+
     print("Prices:")
     print("Adult: ",adultPrices,"\nYouth: ",youthPrices,"\nChild: ", childPrices)
 
+
+def get_report_scores(resortUrl):
+    """
+    Print the resort report scores
+    """
+
+    # Construct the url for the report.
+    reportUrl = resortUrl + "test-result/"
+
+	# Get the content of the report for the resort
+    reportContent = get_html_content(reportUrl)
+
+	# Get a list of all ski resorts on the current page
+    reportHtml = BeautifulSoup(reportContent, 'html.parser')
+    report = reportHtml.findAll("div", {"class": "stars-link-element"})
+
+    # Extract each score for each report attribute.
+    for item in report:
+        end = item['title'].find("out")
+        score = float(item['title'][0:end])
+        attribute = item.contents[5].text
+
+        print(attribute,": ",score)
 
 
 if __name__ == '__main__':
@@ -102,9 +137,7 @@ if __name__ == '__main__':
     '''
     # loop through each page
     # http://www.skiresort.info/ski-resorts/page/<index>/
-    # need to think about how to cycle through each page while getting the urls for each resort on each page.
-
-   
+    
     # Sk resort website url
     url = 'http://www.skiresort.info/ski-resorts/'
     
@@ -135,10 +168,10 @@ if __name__ == '__main__':
                 # Get the contents of the ski resort page.
                 get_basic_resort_statistics(resortUrl)
 
-                
+                # Get the report scores
+                get_report_scores(resortUrl)
 
-                # go to resort report to get ratings <stars>
-                # <resortURL>/test-report/
+
 
 
 
