@@ -3,6 +3,8 @@ from requests import get
 from requests.exceptions import RequestException
 from contextlib import closing
 from bs4 import BeautifulSoup
+import pandas as pd
+#import numpy as np
 import re
 
 
@@ -54,7 +56,6 @@ def get_basic_resort_statistics(resortUrl):
     """
     Print the basic statistics for the ski resort.
     """
-    # Need to put statistics into a data frame and return this for future use.
 
     # Get the contents of the ski resort page.
     resortContent = get_html_content(resortUrl)
@@ -64,7 +65,16 @@ def get_basic_resort_statistics(resortUrl):
 
     # Get altitude info
     altitudeDescipriton = resortHtml.find("div", {"id": "selAlti"}).contents
-    print("Altitude: " + altitudeDescipriton[0])
+    # Account for tooltips in the altitude description.
+    if len(altitudeDescipriton) > 2:
+        altitude = float(altitudeDescipriton[2].split(" - ")[1].split("m")[0])
+    else:        
+        altitude = float(altitudeDescipriton[0].split(" - ")[1].split("m")[0])
+   
+    print("Altitude: " + str(altitude))
+
+    # Add the altitude to the dictionary
+    stat = {"Altitude":altitude}
 
     # Get Slope statistics
     slopeTable = resortHtml.find("table", {"class": "run-table"})
@@ -76,6 +86,7 @@ def get_basic_resort_statistics(resortUrl):
                 
         slopeSatistics[key] = value
         print(key,": ",value)
+        stat[key] = value
             
     # Extract the Lift details.
     liftStatistics = {}
@@ -86,6 +97,7 @@ def get_basic_resort_statistics(resortUrl):
         liftStatistics[key] = value
 
         print(key,": ",value)
+        stat[key] = value
                 
     # Extract the ticket prices
     if not resortHtml.findAll("td", {"id": "selTicketA"}):
@@ -105,6 +117,11 @@ def get_basic_resort_statistics(resortUrl):
 
     print("Prices:")
     print("Adult: ",adultPrices,"\nYouth: ",youthPrices,"\nChild: ", childPrices)
+    stat["Adult"] = adultPrices
+    stat["Youth"] = youthPrices 
+    stat["Child"] = childPrices
+
+    return stat
 
 
 def get_report_scores(resortUrl):
@@ -121,6 +138,9 @@ def get_report_scores(resortUrl):
 	# Get a list of all ski resorts on the current page
     reportHtml = BeautifulSoup(reportContent, 'html.parser')
     report = reportHtml.findAll("div", {"class": "stars-link-element"})
+    
+    # rating dictionary
+    rating = {}
 
     # Extract each score for each report attribute.
     for item in report:
@@ -129,12 +149,16 @@ def get_report_scores(resortUrl):
         attribute = item.contents[5].text
 
         print(attribute,": ",score)
+        rating[attribute] = score
+
+    return rating
 
 
 if __name__ == '__main__':
     '''
     Extraxt data for each ski resort and sort into relevant features.
     '''
+
     # loop through each page
     # http://www.skiresort.info/ski-resorts/page/<index>/
     
@@ -144,7 +168,10 @@ if __name__ == '__main__':
     #totalPages = get_number_of_pages(url)
     totalPages = 1 # restict to first page while testing.
 
-    for page in range(totalPages):
+    resortData = dict()
+    index = 0
+
+    for page in range(totalPages):        
 
         # Consruct the next page with the list of ski resorts.
         if page > 0:
@@ -160,17 +187,38 @@ if __name__ == '__main__':
 
         # Cycle through each resort
         for resort in resorts:
-            if resort != ' ':
+            if resort != ' ' :
+                
+                print (index)
+
+                # Identify the country and locations of the resort.
+                location = resort.find("div", {"class": "sub-breadcrumb"})
+                continent = location.contents[1].contents[0].text
+                country = location.contents[1].contents[2].text
+                province_state = location.contents[1].contents[4].text
+                
                 # Get the URL for each resort
                 resortUrl = resort.find("a", {"class": "pull-right btn btn-default btn-sm"})['href']
+                resortName = resortUrl.split('/')[-2]
                 print ("Resort: ",resortUrl)
-            
+                
                 # Get the contents of the ski resort page.
-                get_basic_resort_statistics(resortUrl)
+                stat = get_basic_resort_statistics(resortUrl)
 
                 # Get the report scores
-                get_report_scores(resortUrl)
+                scores = get_report_scores(resortUrl)
 
+                # Add all the data to the dataframe
+                resortData[resortName] = { "URL" : resortUrl, 
+                        "Continent" : continent, "Country" : country, "State/Province" : province_state,
+                        **stat,
+                        **scores}
+
+                index = index + 1
+
+    df = pd.DataFrame.from_dict(resortData, orient='columns')
+    
+                
 
 
 
