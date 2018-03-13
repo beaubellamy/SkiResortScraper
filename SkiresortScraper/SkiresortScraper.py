@@ -33,7 +33,8 @@ def get_html_content(url):
                 return None
 
     except RequestException as e:
-        log_error('Error during requests to {0} : {1}'.format(url, str(e)))
+        print('Error during requests to {0} : {1}'.format(url, str(e)))
+#        ConnectionError(ProtocolError('Connection aborted.', RemoteDisconnected('Remote end closed connection without response',)),)
 
 def get_number_of_pages(url):
     """
@@ -64,14 +65,17 @@ def get_basic_resort_statistics(resortUrl):
     resortHtml = BeautifulSoup(resortContent, 'html.parser')
 
     # Get altitude info
-    altitudeDescipriton = resortHtml.find("div", {"id": "selAlti"}).contents
-    # Account for tooltips in the altitude description.
-    if len(altitudeDescipriton) > 2:
-        altitude = float(altitudeDescipriton[2].split(" - ")[1].split("m")[0])
-    else:        
-        altitude = float(altitudeDescipriton[0].split(" - ")[1].split("m")[0])
-   
-    print("Altitude: " + str(altitude))
+    if (resortHtml.find("div", {"id": "selAlti"}) != None):
+        altitudeDescipriton = resortHtml.find("div", {"id": "selAlti"}).contents
+        # Account for tooltips in the altitude description.
+        if len(altitudeDescipriton) > 2:
+            altitude = float(altitudeDescipriton[2].split(" - ")[1].split("m")[0])
+        else:        
+            altitude = float(altitudeDescipriton[0].split(" - ")[1].split("m")[0])
+    else:
+        altitude = 0
+
+    #print("Altitude: " + str(altitude))
 
     # Add the altitude to the dictionary
     stat = {"Altitude":altitude}
@@ -79,24 +83,28 @@ def get_basic_resort_statistics(resortUrl):
     # Get Slope statistics
     slopeTable = resortHtml.find("table", {"class": "run-table"})
     slopeSatistics = {}
-    print("Slope Statistics:")
-    for row in slopeTable.findAll("tr"):
-        key = row.contents[1].contents[1]
-        value = float(row.contents[3].contents[0].split("km")[0])
+    #print("Slope Statistics:")
+    if (slopeTable is not None):
+        for row in slopeTable.findAll("tr"):
+            key = row.contents[1].contents[1]
+            value = float(row.contents[3].contents[0].split("km")[0])
                 
-        slopeSatistics[key] = value
-        print(key,": ",value)
-        stat[key] = value
+            slopeSatistics[key] = value
+            #print(key,": ",value)
+            stat[key] = value
             
     # Extract the Lift details.
     liftStatistics = {}
-    print("Lift numbers:")
+    #print("Lift numbers:")
     for lift in resortHtml.findAll("div", {"class": "lift-count"}):
         key = lift['title']
-        value = int(lift.get_text())
+        if (lift.get_text().isnumeric()):
+            value = int(lift.get_text())
+        else:
+            value = 0
         liftStatistics[key] = value
 
-        print(key,": ",value)
+        #print(key,": ",value)
         stat[key] = value
                 
     # Extract the ticket prices
@@ -115,8 +123,8 @@ def get_basic_resort_statistics(resortUrl):
     else:
         childPrices = resortHtml.findAll("td", {"id": "selTicketC"})[0].contents[0]
 
-    print("Prices:")
-    print("Adult: ",adultPrices,"\nYouth: ",youthPrices,"\nChild: ", childPrices)
+    #print("Prices:")
+    #print("Adult: ",adultPrices,"\nYouth: ",youthPrices,"\nChild: ", childPrices)
     stat["Adult"] = adultPrices
     stat["Youth"] = youthPrices 
     stat["Child"] = childPrices
@@ -148,7 +156,7 @@ def get_report_scores(resortUrl):
         score = float(item['title'][0:end])
         attribute = item.contents[5].text
 
-        print(attribute,": ",score)
+        #print(attribute,": ",score)
         rating[attribute] = score
 
     return rating
@@ -165,8 +173,8 @@ if __name__ == '__main__':
     # Sk resort website url
     url = 'http://www.skiresort.info/ski-resorts/'
     
-    #totalPages = get_number_of_pages(url)
-    totalPages = 1 # restict to first page while testing.
+    totalPages = get_number_of_pages(url)
+    #totalPages = 1 # restict to first page while testing.
 
     resortData = dict()
     index = 0
@@ -174,8 +182,12 @@ if __name__ == '__main__':
     for page in range(totalPages):        
 
         # Consruct the next page with the list of ski resorts.
-        if page > 0:
+        if page == 1:
             url = url+"page/"+str(page+1)
+        elif page > 1 and page < 10:
+            url = url[:-1]+str(page+1)
+        elif page >= 10:
+            url = url[:-2]+str(page+1)
         # else: url is unchanged.
         
         # Get the current page contents
@@ -188,14 +200,33 @@ if __name__ == '__main__':
         # Cycle through each resort
         for resort in resorts:
             if resort != ' ' :
-                
-                print (index)
 
+                #if (index == 2206):
+                #    print ("stop here")
+                # http://www.skiresort.info/ski-resort/celjska-koca/
+
+                print (str(page+1)+": "+str(index))
+                
                 # Identify the country and locations of the resort.
                 location = resort.find("div", {"class": "sub-breadcrumb"})
-                continent = location.contents[1].contents[0].text
-                country = location.contents[1].contents[2].text
-                province_state = location.contents[1].contents[4].text
+                
+                # Protect against the various formats of location details.
+                if (len(location.contents) == 4):
+                    if (len(location.contents[1].contents) >= 2):
+                        continent = location.contents[1].contents[0].text
+                        country = location.contents[1].contents[2].text
+                    else:
+                        continent = location.contents[2].contents[0].text
+                        country = location.contents[1].contents[0].text
+                    
+                if (len(location.contents[1].contents) >= 2):
+                    continent = location.contents[1].contents[0].text
+                    country = location.contents[1].contents[2].text
+                    
+                if (len(location.contents[1].contents) >= 4):
+                    province_state = location.contents[1].contents[4].text
+                else:
+                    province_state = ""
                 
                 # Get the URL for each resort
                 resortUrl = resort.find("a", {"class": "pull-right btn btn-default btn-sm"})['href']
@@ -209,16 +240,18 @@ if __name__ == '__main__':
                 scores = get_report_scores(resortUrl)
 
                 # Add all the data to the dataframe
-                resortData[resortName] = { "URL" : resortUrl, 
-                        "Continent" : continent, "Country" : country, "State/Province" : province_state,
-                        **stat,
-                        **scores}
+                resortData[resortName] = {"Resort Name": resortName, 
+                                          "Continent" : continent, "Country" : country, 
+                                          "State/Province" : province_state, "URL" : resortUrl, 
+                                          **stat,
+                                          **scores}
 
                 index = index + 1
 
-    df = pd.DataFrame.from_dict(resortData, orient='columns')
+    df = pd.DataFrame.from_dict(resortData, orient='index')
+    df.to_excel('skiResort.xlsx', sheet_name='sheet1', index=False)
     
-                
+    # Extract the dollar symbol from the price
 
 
 
