@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 #import numpy as np
 import re
-
+import time
 
 
 def is_good_response(resp):
@@ -22,6 +22,9 @@ def get_html_content(url):
     """
     Retrieve the contents of the url.
     """
+    # Be a responisble scraper.
+    time.sleep(5)
+
     # Get the html from the url
     try:
         with closing(get(url, stream=True)) as resp:
@@ -200,11 +203,7 @@ if __name__ == '__main__':
         # Cycle through each resort
         for resort in resorts:
             if resort != ' ' :
-
-                #if (index == 2206):
-                #    print ("stop here")
-                # http://www.skiresort.info/ski-resort/celjska-koca/
-
+                
                 print (str(page+1)+": "+str(index))
                 
                 # Identify the country and locations of the resort.
