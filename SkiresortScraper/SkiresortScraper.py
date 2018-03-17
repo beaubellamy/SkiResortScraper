@@ -23,7 +23,7 @@ def get_html_content(url):
     Retrieve the contents of the url.
     """
     # Be a responisble scraper.
-    time.sleep(5)
+    time.sleep(2)
 
     # Get the html from the url
     try:
@@ -38,6 +38,34 @@ def get_html_content(url):
     except RequestException as e:
         print('Error during requests to {0} : {1}'.format(url, str(e)))
 #        ConnectionError(ProtocolError('Connection aborted.', RemoteDisconnected('Remote end closed connection without response',)),)
+
+def currencyExtraction(priceString):
+    """
+    """
+    currencyDict = {'£':'UK Pound','¥':'Japanese Yen','€':'European Euro','AED':'United Arab Emerites',
+                    'AMD':'Armenian Dram','ARS':'Argentine Peso','AU$':'Australian dollar',
+                    'AZN':'Azerbaijani manat','BAM':'Bosnia convertible mark','BGN':'Bulgarian Lev',
+                    'C$':'Canadian Dollar','CLP':'Chiliean Peso','CZK':'Czech koruna',
+                    'DKK':'Danish Krone','GEL':'Georgian Lari','HRK':'Croatian Kuna',
+                    'HUF':'Hungarian forint','ILS':'Israeli new shekel','IRR':'Iranian rial',
+                    'ISK':'Icelandic krona','KGS':'Kyrgyzstani som','KRW':'South Korean won',
+                    'KZT':'Kazakhstani tenge','LBP':'Lebanese pound','MKD':'Macedonian denar',
+                    'MNT':'Mongolian togrog','NOK':'Norwegian krone','NZ$':'New Zealand Dollar',
+                    'PLN':'Polish zloty','RON':'Romanian leu','Rs':'Indian rupee','RSD':'Serbian dinar',
+                    'RUB':'Russian ruble','SFr.':'Swiss Franc','Skr':'Swedish krona','TRY':'Turkish lira',
+                    'UAH':'Ukrainian hryvnia','US$':'US Dollar','ZAR':'South African rand','Ұ':'Chinese Yuan'}
+
+    [currency, price] = priceString.split()
+    if (',' in price):
+        [price, extra] = price.split(',')
+        
+
+    if (currency in currencyDict):
+        return [currencyDict[currency], price]
+    else:
+        return ['unknown', price]
+
+
 
 def get_number_of_pages(url):
     """
@@ -111,26 +139,34 @@ def get_basic_resort_statistics(resortUrl):
         stat[key] = value
                 
     # Extract the ticket prices
+    currency = None
     if not resortHtml.findAll("td", {"id": "selTicketA"}):
         adultPrices = 0
     else:
         adultPrices = resortHtml.findAll("td", {"id": "selTicketA"})[0].contents[0]
+        [currency, adultPrices] = currencyExtraction(adultPrices)
 
     if not resortHtml.findAll("td", {"id": "selTicketY"}):
         youthPrices = 0
     else:
         youthPrices = resortHtml.findAll("td", {"id": "selTicketY"})[0].contents[0]
+        [currency, youthPrices] = currencyExtraction(youthPrices)
 
     if not resortHtml.findAll("td", {"id": "selTicketC"}):
         childPrices = 0
     else:
         childPrices = resortHtml.findAll("td", {"id": "selTicketC"})[0].contents[0]
+        [currency, childPrices] = currencyExtraction(childPrices)
+   
+    if currency is None:
+        currency = '-'
 
     #print("Prices:")
     #print("Adult: ",adultPrices,"\nYouth: ",youthPrices,"\nChild: ", childPrices)
     stat["Adult"] = adultPrices
     stat["Youth"] = youthPrices 
     stat["Child"] = childPrices
+    stat["Currency"] = currency
 
     return stat
 
@@ -177,7 +213,7 @@ if __name__ == '__main__':
     url = 'http://www.skiresort.info/ski-resorts/'
     
     totalPages = get_number_of_pages(url)
-    #totalPages = 1 # restict to first page while testing.
+    #totalPages = 2 # restict to first page while testing.
 
     resortData = dict()
     index = 0
