@@ -41,6 +41,7 @@ def get_html_content(url):
 
 def currencyExtraction(priceString):
     """
+    Extract the currency symbol and convert to a description of the currency.
     """
     currencyDict = {'£':'UK Pound','¥':'Japanese Yen','€':'European Euro','AED':'United Arab Emerites',
                     'AMD':'Armenian Dram','ARS':'Argentine Peso','AU$':'Australian dollar',
