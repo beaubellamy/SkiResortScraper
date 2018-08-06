@@ -211,7 +211,7 @@ if __name__ == '__main__':
     # http://www.skiresort.info/ski-resorts/page/<index>/
     
     # Sk resort website url
-    url = 'http://www.skiresort.info/ski-resorts/'
+    url = 'https://www.skiresort.info/ski-resorts/'
     
     totalPages = get_number_of_pages(url)
     #totalPages = 2 # restict to first page while testing.
